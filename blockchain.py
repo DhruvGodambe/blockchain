@@ -1,7 +1,7 @@
 import datetime
 import hashlib
 import json
-import flask
+from flask import Flask, jsonify
 
 # creating a blockchain
 class Blockchain:
@@ -13,7 +13,7 @@ class Blockchain:
     def create_block(self, proof, previous_hash):
         block = {
             'index': len(self.chain) + 1,
-            'timestamp': datetime.datetime.now(),
+            'timestamp': str(datetime.datetime.now()),
             'proof': proof,
             'previous_hash': previous_hash
         }
@@ -56,5 +56,35 @@ class Blockchain:
             block_index += 1
         return True
 
-# mining a blockchain
+# initiating a blockchain instance
+blockchain = Blockchain()
 
+# creating web App
+app = Flask(__name__)
+
+# mining a blockchain
+@app.route("/mine_block", methods = ["GET"])
+def mine_block():
+    previous_block = blockchain.get_previous_block()
+    previous_proof = previous_block['proof']
+    proof = blockchain.proof_of_work(previous_proof)
+    previous_hash = blockchain.hash(previous_block)
+    block = blockchain.create_block(proof, previous_hash)
+    response = {
+        'message': 'Congradulations, you just mined a block!',
+        'index': block['index'],
+        'timestamp': block['timestamp'],
+        'proof': block['proof'],
+        'previous_hash': block['previous_hash']
+    }
+    return jsonify(response), 200
+
+@app.route("/get_chain", methods = ["GET"])
+def get_chain():
+    response = {
+        'chain': blockchain.chain,
+        'length': len(blockchain.chain)
+    }
+    return jsonify(response), 200
+
+app.run(host = '0.0.0.0', port = 5000)
